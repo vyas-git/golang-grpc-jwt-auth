@@ -61,13 +61,25 @@ message RefreshToken {
 }
 
 message Secret {
-	string secret_key = 1;
+	int32 secret_id = 1;
+	string secret_key = 2;
+	string expire_date = 3;
+	string created_at = 4;
 }
+
 message Secrets {
 	repeated Secret secrets = 1;
 }
 message ReqDeleteSecret {
 	string secret_key = 1;
+	AccessToken access_token = 2;
+
+}
+message RespGetSecretExpire {
+	bool expired = 1;
+}
+message ReqGetSecretExpire {
+	int32 secret_id = 1;
 	AccessToken access_token = 2;
 
 }
@@ -79,7 +91,9 @@ service Auth {
 	rpc ProfileUpdate(UpdateUserData) returns(RegisterUserData) {}
 
 	rpc CreateSecret(AccessToken) returns(Secret) {}
-	rpc GetSecret(AccessToken) returns(Secrets) {}
+	rpc GetSecret(ReqGetSecretExpire) returns(RespGetSecretExpire) {}
+	rpc GetSecrets(AccessToken) returns(Secrets) {}
+
 	rpc DeleteSecret(ReqDeleteSecret) returns(Secrets) {}
 
     rpc RefreshTokens(RefreshToken) returns(Tokens) {}

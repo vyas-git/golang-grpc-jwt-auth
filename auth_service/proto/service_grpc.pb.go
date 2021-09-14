@@ -4,7 +4,6 @@ package proto
 
 import (
 	context "context"
-
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -67,7 +66,7 @@ func (x *adminLoggingClient) Recv() (*Event, error) {
 // for forward compatibility
 type AdminServer interface {
 	Logging(*Nothing, Admin_LoggingServer) error
-	//mustEmbedUnimplementedAdminServer()
+	mustEmbedUnimplementedAdminServer()
 }
 
 // UnimplementedAdminServer must be embedded to have forward compatible implementations.
@@ -138,7 +137,8 @@ type AuthClient interface {
 	ProfileDelete(ctx context.Context, in *AccessToken, opts ...grpc.CallOption) (*RespUserData, error)
 	ProfileUpdate(ctx context.Context, in *UpdateUserData, opts ...grpc.CallOption) (*RegisterUserData, error)
 	CreateSecret(ctx context.Context, in *AccessToken, opts ...grpc.CallOption) (*Secret, error)
-	GetSecret(ctx context.Context, in *AccessToken, opts ...grpc.CallOption) (*Secrets, error)
+	GetSecret(ctx context.Context, in *ReqGetSecretExpire, opts ...grpc.CallOption) (*RespGetSecretExpire, error)
+	GetSecrets(ctx context.Context, in *AccessToken, opts ...grpc.CallOption) (*Secrets, error)
 	DeleteSecret(ctx context.Context, in *ReqDeleteSecret, opts ...grpc.CallOption) (*Secrets, error)
 	RefreshTokens(ctx context.Context, in *RefreshToken, opts ...grpc.CallOption) (*Tokens, error)
 }
@@ -205,9 +205,18 @@ func (c *authClient) CreateSecret(ctx context.Context, in *AccessToken, opts ...
 	return out, nil
 }
 
-func (c *authClient) GetSecret(ctx context.Context, in *AccessToken, opts ...grpc.CallOption) (*Secrets, error) {
-	out := new(Secrets)
+func (c *authClient) GetSecret(ctx context.Context, in *ReqGetSecretExpire, opts ...grpc.CallOption) (*RespGetSecretExpire, error) {
+	out := new(RespGetSecretExpire)
 	err := c.cc.Invoke(ctx, "/main.Auth/GetSecret", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authClient) GetSecrets(ctx context.Context, in *AccessToken, opts ...grpc.CallOption) (*Secrets, error) {
+	out := new(Secrets)
+	err := c.cc.Invoke(ctx, "/main.Auth/GetSecrets", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -242,10 +251,11 @@ type AuthServer interface {
 	ProfileDelete(context.Context, *AccessToken) (*RespUserData, error)
 	ProfileUpdate(context.Context, *UpdateUserData) (*RegisterUserData, error)
 	CreateSecret(context.Context, *AccessToken) (*Secret, error)
-	GetSecret(context.Context, *AccessToken) (*Secrets, error)
+	GetSecret(context.Context, *ReqGetSecretExpire) (*RespGetSecretExpire, error)
+	GetSecrets(context.Context, *AccessToken) (*Secrets, error)
 	DeleteSecret(context.Context, *ReqDeleteSecret) (*Secrets, error)
 	RefreshTokens(context.Context, *RefreshToken) (*Tokens, error)
-	//mustEmbedUnimplementedAuthServer()
+	mustEmbedUnimplementedAuthServer()
 }
 
 // UnimplementedAuthServer must be embedded to have forward compatible implementations.
@@ -270,8 +280,11 @@ func (UnimplementedAuthServer) ProfileUpdate(context.Context, *UpdateUserData) (
 func (UnimplementedAuthServer) CreateSecret(context.Context, *AccessToken) (*Secret, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateSecret not implemented")
 }
-func (UnimplementedAuthServer) GetSecret(context.Context, *AccessToken) (*Secrets, error) {
+func (UnimplementedAuthServer) GetSecret(context.Context, *ReqGetSecretExpire) (*RespGetSecretExpire, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetSecret not implemented")
+}
+func (UnimplementedAuthServer) GetSecrets(context.Context, *AccessToken) (*Secrets, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetSecrets not implemented")
 }
 func (UnimplementedAuthServer) DeleteSecret(context.Context, *ReqDeleteSecret) (*Secrets, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteSecret not implemented")
@@ -401,7 +414,7 @@ func _Auth_CreateSecret_Handler(srv interface{}, ctx context.Context, dec func(i
 }
 
 func _Auth_GetSecret_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(AccessToken)
+	in := new(ReqGetSecretExpire)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -413,7 +426,25 @@ func _Auth_GetSecret_Handler(srv interface{}, ctx context.Context, dec func(inte
 		FullMethod: "/main.Auth/GetSecret",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuthServer).GetSecret(ctx, req.(*AccessToken))
+		return srv.(AuthServer).GetSecret(ctx, req.(*ReqGetSecretExpire))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Auth_GetSecrets_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AccessToken)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServer).GetSecrets(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/main.Auth/GetSecrets",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServer).GetSecrets(ctx, req.(*AccessToken))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -488,6 +519,10 @@ var Auth_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetSecret",
 			Handler:    _Auth_GetSecret_Handler,
+		},
+		{
+			MethodName: "GetSecrets",
+			Handler:    _Auth_GetSecrets_Handler,
 		},
 		{
 			MethodName: "DeleteSecret",

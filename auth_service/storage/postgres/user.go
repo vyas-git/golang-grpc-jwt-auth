@@ -4,6 +4,7 @@ import (
 	"auth_service/app"
 	"database/sql"
 	"fmt"
+	"time"
 
 	"github.com/pkg/errors"
 )
@@ -35,8 +36,8 @@ func (db *DBPostgres) GetUserByLogin(email string) (*app.User, error) {
 
 func (db *DBPostgres) GetUserByID(id uint) (*app.User, error) {
 	var user app.User
-	row := db.QueryRow("SELECT id,fname,lname, email, password, organisation FROM users WHERE id = $1", id)
-	err := row.Scan(&user.ID, &user.Fname, &user.Lname, &user.Email, &user.PasswordHash, &user.Organisation)
+	row := db.QueryRow("SELECT fname,lname, email, organisation FROM users WHERE id = $1", id)
+	err := row.Scan(&user.Fname, &user.Lname, &user.Email, &user.Organisation)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, fmt.Errorf("no user with such id")
@@ -84,11 +85,39 @@ func (db *DBPostgres) DeleteUserByID(id uint) (*app.User, error) {
 
 func (db *DBPostgres) NewSecretKey(uid uint, secret *app.Secret) (*app.Secret, error) {
 	var NewSecret app.Secret
-	row := db.QueryRow("INSERT INTO user_secret_keys (uid,secret_key) VALUES($1,$2) RETURNING id",
-		uid, secret.SecretKey)
-	if err := row.Scan(&NewSecret.SecretKey); err != nil {
+	row := db.QueryRow("INSERT INTO user_secret_keys (uid,secret_key,expire_date) VALUES($1,$2,$3) RETURNING id,secret_key,expire_date,created_at",
+		uid, secret.SecretKey, time.Now().AddDate(0, 0, +2))
+	if err := row.Scan(&NewSecret.SecretId, &NewSecret.SecretKey, &NewSecret.ExpireDate, &NewSecret.CreatedAt); err != nil {
 		return nil, errors.Wrap(err, "query err")
 	}
 
 	return &NewSecret, nil
+}
+
+func (db *DBPostgres) GetSecrets(uid uint) (*[]app.Secret, error) {
+	var secrets []app.Secret
+	rows, err := db.Query("SELECT id,secret_key,expire_date,created_at from user_secret_keys where uid=$1",
+		uid)
+	if err != nil {
+		return nil, errors.Wrap(err, "query err")
+	}
+	defer rows.Close()
+
+	// Loop through rows, using Scan to assign column data to struct fields.
+	for rows.Next() {
+		var secret app.Secret
+		if err := rows.Scan(&secret.SecretId, &secret.SecretKey, &secret.ExpireDate, &secret.CreatedAt); err != nil {
+			return &secrets, err
+		}
+		secrets = append(secrets, secret)
+	}
+
+	return &secrets, nil
+}
+
+func (db *DBPostgres) GetSecretExpired(secretid uint) (bool, error) {
+	return true, nil
+}
+func (db *DBPostgres) DeleteSecret(secretid uint) ([]*app.Secret, error) {
+	return nil, nil
 }

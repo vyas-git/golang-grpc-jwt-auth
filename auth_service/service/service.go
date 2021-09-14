@@ -33,6 +33,7 @@ type AuthManager struct {
 	config    *config.Config
 	storage   storage.Storage
 	queueConn *nats.EncodedConn
+	proto.UnimplementedAuthServer
 }
 
 //AdminManager contains channels to store logging connections
@@ -42,6 +43,7 @@ type AdminManager struct {
 
 	loggingBroadcast chan *proto.Event
 	loggingListeners map[int]chan *proto.Event
+	proto.UnimplementedAdminServer
 }
 
 //newMainServer create new MainServer entity
@@ -217,21 +219,58 @@ func (am *AuthManager) CreateSecret(ctx context.Context, req *proto.AccessToken)
 	if err != nil {
 		return nil, status.Errorf(codes.Unauthenticated, fmt.Sprintf("extracting user id from token err: %v", err))
 	}
-	new_secret := app.Secret{
-		SecretKey: "",
+	user, err := am.storage.GetUserByID(userID)
+	if err != nil {
+		return nil, status.Errorf(codes.NotFound, fmt.Sprintf("get user err: %v", err))
 	}
-	_, err = am.storage.NewSecretKey(userID, &new_secret)
+
+	key := []byte(am.config.SecretKey)
+	plaintext := []byte(user.Email + "," + user.Organisation)
+	encrypted_key, err := app.EncryptSecret(key, plaintext)
+	encrypted_text := fmt.Sprintf("%0x\n", encrypted_key)
+	new_secret := app.Secret{
+		SecretKey: string(encrypted_text),
+	}
+	data, err := am.storage.NewSecretKey(userID, &new_secret)
 	if err != nil {
 		return nil, status.Errorf(codes.NotFound, fmt.Sprintf("get user err: %v", err))
 	}
 
 	return &proto.Secret{
-		SecretKey: "",
+		SecretId:   int32(data.SecretId),
+		SecretKey:  data.SecretKey,
+		ExpireDate: data.ExpireDate,
+		CreatedAt:  data.CreatedAt,
 	}, nil
 }
 
-func (am *AuthManager) GetSecret(ctx context.Context, req *proto.AccessToken) (*proto.Secrets, error) {
+func (am *AuthManager) GetSecret(ctx context.Context, req *proto.ReqGetSecretExpire) (*proto.RespGetSecretExpire, error) {
+
 	return nil, nil
+}
+func (am *AuthManager) GetSecrets(ctx context.Context, req *proto.AccessToken) (*proto.Secrets, error) {
+	userID, err := app.UserIDFromToken(req.AccessToken, am.config.AccessKey)
+	if err != nil {
+		return nil, status.Errorf(codes.Unauthenticated, fmt.Sprintf("extracting user id from token err: %v", err))
+	}
+
+	data, err := am.storage.GetSecrets(userID)
+	if err != nil {
+		return nil, status.Errorf(codes.NotFound, fmt.Sprintf("get secrets err: %v", err))
+	}
+	var secrets []*proto.Secret
+	for _, val := range *data {
+		var secret = &proto.Secret{
+			SecretId:   int32(val.SecretId),
+			SecretKey:  val.SecretKey,
+			ExpireDate: val.ExpireDate,
+			CreatedAt:  val.CreatedAt,
+		}
+		secrets = append(secrets, secret)
+	}
+	return &proto.Secrets{
+		Secrets: secrets,
+	}, nil
 }
 
 func (am *AuthManager) DeleteSecret(ctx context.Context, req *proto.ReqDeleteSecret) (*proto.Secrets, error) {
@@ -278,6 +317,7 @@ func (am *AdminManager) mustEmbedUnimplementedAdminServer() {
 	fmt.Println("Implemeneted")
 
 }
+
 func (am *AdminManager) addLogListenersCh() (int, chan *proto.Event) {
 	id, ch := randInt(), make(chan *proto.Event)
 	am.mu.Lock()

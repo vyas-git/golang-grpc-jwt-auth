@@ -13,6 +13,6 @@ CREATE TABLE IF NOT EXISTS user_secret_keys  (
     id           	serial PRIMARY KEY,
     uid          	int,
 	secret_key      varchar(255),
-	expire_date     TIMESTAMP
+	expire_date     TIMESTAMP,
     created_at   	TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );

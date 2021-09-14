@@ -44,6 +44,14 @@ type userData struct {
 	Email string `json:"email"`
 	Admin bool   `json:"admin"`
 }
+type Secret struct {
+	SecretKey  string
+	ExpireDate string
+	CreatedAt  string
+}
+type SecretsList struct {
+	Secrets []Secret
+}
 
 func (a *Api) register(w http.ResponseWriter, r *http.Request) error {
 	var input registerInput
@@ -187,6 +195,40 @@ func (a *Api) profileUpdate(w http.ResponseWriter, r *http.Request) error {
 		Organisation: data.Organisation,
 	}
 	json.NewEncoder(w).Encode(userData)
+	return nil
+}
+func (a *Api) createSecret(w http.ResponseWriter, r *http.Request) error {
+	token, err := tokenFromHeader(r)
+	if err != nil {
+		return &errs.ApiError{Code: http.StatusUnauthorized, Message: err.Error()}
+	}
+
+	ctx := context.Background()
+	data, err := a.AuthGRPC.CreateSecret(ctx, &proto.AccessToken{
+		AccessToken: token,
+	})
+	if err != nil {
+		return err
+	}
+
+	json.NewEncoder(w).Encode(data)
+	return nil
+}
+func (a *Api) getSecrets(w http.ResponseWriter, r *http.Request) error {
+	token, err := tokenFromHeader(r)
+	if err != nil {
+		return &errs.ApiError{Code: http.StatusUnauthorized, Message: err.Error()}
+	}
+
+	ctx := context.Background()
+	data, err := a.AuthGRPC.GetSecrets(ctx, &proto.AccessToken{
+		AccessToken: token,
+	})
+	if err != nil {
+		return err
+	}
+
+	json.NewEncoder(w).Encode(data)
 	return nil
 }
 

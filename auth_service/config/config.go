@@ -2,15 +2,17 @@ package config
 
 import (
 	"fmt"
-	"github.com/joho/godotenv"
 	"log"
 	"os"
 	"strconv"
+
+	"github.com/joho/godotenv"
 )
 
 type Config struct {
 	AccessKey     string
 	RefreshKey    string
+	SecretKey     string
 	AccessExpMin  int
 	RefreshExpMin int
 	Port          string
@@ -34,8 +36,10 @@ func InitConfig(envPath string) (*Config, error) {
 	}
 
 	config := &Config{
-		AccessKey:     getEnv("ACCESS_KEY", "access_key"),
-		RefreshKey:    getEnv("REFRESH_KEY", "refresh_key"),
+		AccessKey:  getEnv("ACCESS_KEY", "access_key"),
+		RefreshKey: getEnv("REFRESH_KEY", "refresh_key"),
+		SecretKey:  getEnv("SECRET_KEY", "secret_key"),
+
 		AccessExpMin:  getIntEnv("ACCESS_EXP_MIN", 60),
 		RefreshExpMin: getIntEnv("REFRESH_EXP_MIN", 1440),
 		Port:          getEnv("PORT", "8081"),

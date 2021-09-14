@@ -79,6 +79,8 @@ func (a *Api) InitRouter() {
 	r.Method("GET", a.Config.BaseApi+"/profile", a.handler(a.profile))
 	r.Method("DELETE", a.Config.BaseApi+"/profile", a.handler(a.profileDelete))
 	r.Method("PUT", a.Config.BaseApi+"/profile", a.handler(a.profileUpdate))
+	r.Method("POST", a.Config.BaseApi+"/secrets", a.handler(a.createSecret))
+	r.Method("GET", a.Config.BaseApi+"/secrets", a.handler(a.getSecrets))
 
 	r.Method("POST", a.Config.BaseApi+"/refresh_tokens", a.handler(a.refreshTokens))
 	a.Router = r

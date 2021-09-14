@@ -15,6 +15,9 @@ type Storage interface {
 	DeleteUserByID(id uint) (*app.User, error)
 
 	NewSecretKey(id uint, secret *app.Secret) (*app.Secret, error)
+	GetSecrets(uid uint) (*[]app.Secret, error)
+	GetSecretExpired(secretid uint) (bool, error)
+	DeleteSecret(secretid uint) ([]*app.Secret, error)
 	Close() error
 }
 
