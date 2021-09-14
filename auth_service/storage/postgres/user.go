@@ -68,19 +68,13 @@ func (db *DBPostgres) PutUserByID(uid uint, user *app.User) (*app.User, error) {
 	return &updatedUser, nil
 }
 
-func (db *DBPostgres) DeleteUserByID(id uint) (*app.User, error) {
-	var user app.User
-
-	row := db.QueryRow("DELETE from users WHERE id = $1", id)
-	err := row.Scan(&user.ID, &user.Fname, &user.Lname, &user.Email, &user.PasswordHash, &user.Organisation)
+func (db *DBPostgres) DeleteUserByID(id uint) (string, error) {
+	_, err := db.Query("DELETE from users WHERE id = $1", id)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, fmt.Errorf("no user with such id")
-		}
-		return nil, errors.Wrap(err, "query err")
+		return "", errors.Wrap(err, "query err")
 	}
 
-	return &user, nil
+	return "Delete Successfully", nil
 }
 
 func (db *DBPostgres) NewSecretKey(uid uint, secret *app.Secret) (*app.Secret, error) {
@@ -115,9 +109,31 @@ func (db *DBPostgres) GetSecrets(uid uint) (*[]app.Secret, error) {
 	return &secrets, nil
 }
 
-func (db *DBPostgres) GetSecretExpired(secretid uint) (bool, error) {
-	return true, nil
+func (db *DBPostgres) GetSecretExpired(secretid uint) (string, error) {
+	var secret app.Secret
+	row := db.QueryRow("SELECT expire_date FROM user_secret_keys WHERE id = $1", secretid)
+	err := row.Scan(&secret.ExpireDate)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return "", fmt.Errorf("no secret with such id")
+		}
+		return "", errors.Wrap(err, "query err")
+	}
+	t, err := time.Parse(time.RFC3339, secret.ExpireDate)
+
+	if t.Before(time.Now()) {
+		return "Expired", nil
+	} else {
+		return "Not Expired", nil
+	}
+
 }
-func (db *DBPostgres) DeleteSecret(secretid uint) ([]*app.Secret, error) {
-	return nil, nil
+func (db *DBPostgres) DeleteSecret(secretid uint, uid uint) (*[]app.Secret, error) {
+	_, err := db.Exec("DELETE from user_secret_keys WHERE id = $1", secretid)
+	if err != nil {
+		return nil, errors.Wrap(err, "query err")
+	}
+	data, err := db.GetSecrets(uid)
+	return data, nil
 }

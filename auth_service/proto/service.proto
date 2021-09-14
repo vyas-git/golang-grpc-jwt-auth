@@ -45,7 +45,9 @@ message RespUserData {
     string email    = 2;
     bool   admin    = 3;
 }
-
+message RespDeleteUser {
+	string status = 1;
+}
 message Tokens {
     string access_token     = 1;
     string refresh_token    = 2;
@@ -71,13 +73,14 @@ message Secrets {
 	repeated Secret secrets = 1;
 }
 message ReqDeleteSecret {
-	string secret_key = 1;
+	int32 secret_id = 1;
 	AccessToken access_token = 2;
 
 }
 message RespGetSecretExpire {
-	bool expired = 1;
+	string status = 1;
 }
+
 message ReqGetSecretExpire {
 	int32 secret_id = 1;
 	AccessToken access_token = 2;
@@ -87,7 +90,7 @@ service Auth {
     rpc Register(RegisterUserData) returns(Tokens) {}
     rpc Login(ReqUserData) returns(Tokens) {}
     rpc Profile(AccessToken) returns(RespUserData) {}
-	rpc ProfileDelete(AccessToken) returns(RespUserData) {}
+	rpc ProfileDelete(AccessToken) returns(RespDeleteUser) {}
 	rpc ProfileUpdate(UpdateUserData) returns(RegisterUserData) {}
 
 	rpc CreateSecret(AccessToken) returns(Secret) {}

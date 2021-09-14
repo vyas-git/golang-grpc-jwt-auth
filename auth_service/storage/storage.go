@@ -12,12 +12,12 @@ type Storage interface {
 	GetUserByLogin(login string) (*app.User, error)
 	GetUserByID(id uint) (*app.User, error)
 	PutUserByID(id uint, user *app.User) (*app.User, error)
-	DeleteUserByID(id uint) (*app.User, error)
+	DeleteUserByID(id uint) (string, error)
 
 	NewSecretKey(id uint, secret *app.Secret) (*app.Secret, error)
 	GetSecrets(uid uint) (*[]app.Secret, error)
-	GetSecretExpired(secretid uint) (bool, error)
-	DeleteSecret(secretid uint) ([]*app.Secret, error)
+	GetSecretExpired(secretid uint) (string, error)
+	DeleteSecret(secretid uint, uid uint) (*[]app.Secret, error)
 	Close() error
 }
 

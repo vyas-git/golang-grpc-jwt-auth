@@ -134,7 +134,7 @@ type AuthClient interface {
 	Register(ctx context.Context, in *RegisterUserData, opts ...grpc.CallOption) (*Tokens, error)
 	Login(ctx context.Context, in *ReqUserData, opts ...grpc.CallOption) (*Tokens, error)
 	Profile(ctx context.Context, in *AccessToken, opts ...grpc.CallOption) (*RespUserData, error)
-	ProfileDelete(ctx context.Context, in *AccessToken, opts ...grpc.CallOption) (*RespUserData, error)
+	ProfileDelete(ctx context.Context, in *AccessToken, opts ...grpc.CallOption) (*RespDeleteUser, error)
 	ProfileUpdate(ctx context.Context, in *UpdateUserData, opts ...grpc.CallOption) (*RegisterUserData, error)
 	CreateSecret(ctx context.Context, in *AccessToken, opts ...grpc.CallOption) (*Secret, error)
 	GetSecret(ctx context.Context, in *ReqGetSecretExpire, opts ...grpc.CallOption) (*RespGetSecretExpire, error)
@@ -178,8 +178,8 @@ func (c *authClient) Profile(ctx context.Context, in *AccessToken, opts ...grpc.
 	return out, nil
 }
 
-func (c *authClient) ProfileDelete(ctx context.Context, in *AccessToken, opts ...grpc.CallOption) (*RespUserData, error) {
-	out := new(RespUserData)
+func (c *authClient) ProfileDelete(ctx context.Context, in *AccessToken, opts ...grpc.CallOption) (*RespDeleteUser, error) {
+	out := new(RespDeleteUser)
 	err := c.cc.Invoke(ctx, "/main.Auth/ProfileDelete", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -248,7 +248,7 @@ type AuthServer interface {
 	Register(context.Context, *RegisterUserData) (*Tokens, error)
 	Login(context.Context, *ReqUserData) (*Tokens, error)
 	Profile(context.Context, *AccessToken) (*RespUserData, error)
-	ProfileDelete(context.Context, *AccessToken) (*RespUserData, error)
+	ProfileDelete(context.Context, *AccessToken) (*RespDeleteUser, error)
 	ProfileUpdate(context.Context, *UpdateUserData) (*RegisterUserData, error)
 	CreateSecret(context.Context, *AccessToken) (*Secret, error)
 	GetSecret(context.Context, *ReqGetSecretExpire) (*RespGetSecretExpire, error)
@@ -271,7 +271,7 @@ func (UnimplementedAuthServer) Login(context.Context, *ReqUserData) (*Tokens, er
 func (UnimplementedAuthServer) Profile(context.Context, *AccessToken) (*RespUserData, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Profile not implemented")
 }
-func (UnimplementedAuthServer) ProfileDelete(context.Context, *AccessToken) (*RespUserData, error) {
+func (UnimplementedAuthServer) ProfileDelete(context.Context, *AccessToken) (*RespDeleteUser, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ProfileDelete not implemented")
 }
 func (UnimplementedAuthServer) ProfileUpdate(context.Context, *UpdateUserData) (*RegisterUserData, error) {

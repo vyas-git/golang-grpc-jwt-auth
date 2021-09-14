@@ -9,8 +9,11 @@ import (
 	"io/ioutil"
 	"net/http"
 	"regexp"
+	"strconv"
 	"strings"
 	"unicode/utf8"
+
+	"github.com/go-chi/chi"
 )
 
 type registerInput struct {
@@ -157,12 +160,7 @@ func (a *Api) profileDelete(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	userData := userData{
-		ID:    uint(data.Id),
-		Email: data.Email,
-		Admin: data.Admin,
-	}
-	json.NewEncoder(w).Encode(userData)
+	json.NewEncoder(w).Encode(data)
 	return nil
 }
 func (a *Api) profileUpdate(w http.ResponseWriter, r *http.Request) error {
@@ -223,6 +221,51 @@ func (a *Api) getSecrets(w http.ResponseWriter, r *http.Request) error {
 	ctx := context.Background()
 	data, err := a.AuthGRPC.GetSecrets(ctx, &proto.AccessToken{
 		AccessToken: token,
+	})
+	if err != nil {
+		return err
+	}
+
+	json.NewEncoder(w).Encode(data)
+	return nil
+}
+func (a *Api) deleteSecrets(w http.ResponseWriter, r *http.Request) error {
+	token, err := tokenFromHeader(r)
+	if err != nil {
+		return &errs.ApiError{Code: http.StatusUnauthorized, Message: err.Error()}
+	}
+
+	ctx := context.Background()
+	sid, _ := strconv.Atoi(chi.URLParam(r, "id"))
+
+	data, err := a.AuthGRPC.DeleteSecret(ctx, &proto.ReqDeleteSecret{
+		SecretId: int32(sid),
+		AccessToken: &proto.AccessToken{
+			AccessToken: token,
+		},
+	})
+	if err != nil {
+		return err
+	}
+
+	json.NewEncoder(w).Encode(data)
+	return nil
+}
+
+func (a *Api) getSecretExpired(w http.ResponseWriter, r *http.Request) error {
+	token, err := tokenFromHeader(r)
+	if err != nil {
+		return &errs.ApiError{Code: http.StatusUnauthorized, Message: err.Error()}
+	}
+
+	ctx := context.Background()
+	sid, _ := strconv.Atoi(chi.URLParam(r, "id"))
+
+	data, err := a.AuthGRPC.GetSecret(ctx, &proto.ReqGetSecretExpire{
+		SecretId: int32(sid),
+		AccessToken: &proto.AccessToken{
+			AccessToken: token,
+		},
 	})
 	if err != nil {
 		return err

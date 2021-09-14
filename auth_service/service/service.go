@@ -174,20 +174,18 @@ func (am *AuthManager) Profile(ctx context.Context, req *proto.AccessToken) (*pr
 		Admin: user.Admin,
 	}, nil
 }
-func (am *AuthManager) ProfileDelete(ctx context.Context, req *proto.AccessToken) (*proto.RespUserData, error) {
+func (am *AuthManager) ProfileDelete(ctx context.Context, req *proto.AccessToken) (*proto.RespDeleteUser, error) {
 	userID, err := app.UserIDFromToken(req.AccessToken, am.config.AccessKey)
 	if err != nil {
 		return nil, status.Errorf(codes.Unauthenticated, fmt.Sprintf("extracting user id from token err: %v", err))
 	}
-	user, err := am.storage.DeleteUserByID(userID)
+	msg, err := am.storage.DeleteUserByID(userID)
 	if err != nil {
 		return nil, status.Errorf(codes.NotFound, fmt.Sprintf("get user err: %v", err))
 	}
 
-	return &proto.RespUserData{
-		Id:    int64(user.ID),
-		Email: user.Email,
-		Admin: user.Admin,
+	return &proto.RespDeleteUser{
+		Status: msg,
 	}, nil
 }
 func (am *AuthManager) ProfileUpdate(ctx context.Context, req *proto.UpdateUserData) (*proto.RegisterUserData, error) {
@@ -245,8 +243,17 @@ func (am *AuthManager) CreateSecret(ctx context.Context, req *proto.AccessToken)
 }
 
 func (am *AuthManager) GetSecret(ctx context.Context, req *proto.ReqGetSecretExpire) (*proto.RespGetSecretExpire, error) {
-
-	return nil, nil
+	_, err := app.UserIDFromToken(req.AccessToken.AccessToken, am.config.AccessKey)
+	if err != nil {
+		return nil, status.Errorf(codes.Unauthenticated, fmt.Sprintf("extracting user id from token err: %v", err))
+	}
+	data, err := am.storage.GetSecretExpired(uint(req.SecretId))
+	if err != nil {
+		return nil, status.Errorf(codes.NotFound, fmt.Sprintf("get user err: %v", err))
+	}
+	return &proto.RespGetSecretExpire{
+		Status: data,
+	}, nil
 }
 func (am *AuthManager) GetSecrets(ctx context.Context, req *proto.AccessToken) (*proto.Secrets, error) {
 	userID, err := app.UserIDFromToken(req.AccessToken, am.config.AccessKey)
@@ -274,7 +281,28 @@ func (am *AuthManager) GetSecrets(ctx context.Context, req *proto.AccessToken) (
 }
 
 func (am *AuthManager) DeleteSecret(ctx context.Context, req *proto.ReqDeleteSecret) (*proto.Secrets, error) {
-	return nil, nil
+	userID, err := app.UserIDFromToken(req.AccessToken.AccessToken, am.config.AccessKey)
+	if err != nil {
+		return nil, status.Errorf(codes.Unauthenticated, fmt.Sprintf("extracting user id from token err: %v", err))
+	}
+	data, err := am.storage.DeleteSecret(uint(req.SecretId), userID)
+	if err != nil {
+		return nil, status.Errorf(codes.NotFound, fmt.Sprintf("delete secrets err: %v", err))
+	}
+	var secrets []*proto.Secret
+	for _, val := range *data {
+		var secret = &proto.Secret{
+			SecretId:   int32(val.SecretId),
+			SecretKey:  val.SecretKey,
+			ExpireDate: val.ExpireDate,
+			CreatedAt:  val.CreatedAt,
+		}
+		secrets = append(secrets, secret)
+	}
+	return &proto.Secrets{
+		Secrets: secrets,
+	}, nil
+
 }
 
 func (am *AuthManager) RefreshTokens(ctx context.Context, req *proto.RefreshToken) (*proto.Tokens, error) {
