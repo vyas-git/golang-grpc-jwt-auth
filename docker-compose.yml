@@ -26,7 +26,11 @@ services:
       - HOST=nats_server
   auth_service:
     container_name: auth_service
-    build: ./auth_service
+    build: 
+      context: ./auth_service
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./auth_service:/auth_s
     restart: on-failure
     depends_on:
       - postgres
@@ -43,9 +47,13 @@ services:
       - NATS_HOST=nats_server
   auth_api:
     container_name: auth_client
-    build: ./auth_client
+    build: 
+      context: ./auth_client
+      dockerfile: Dockerfile.dev
     ports:
       - "8082:8082"
+    volumes:
+    - ./auth_client:/auth_c
     restart: on-failure
     depends_on:
       - auth_service

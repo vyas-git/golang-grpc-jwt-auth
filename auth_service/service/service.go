@@ -143,6 +143,7 @@ func (am *AuthManager) Register(ctx context.Context, data *proto.RegisterUserDat
 }
 
 func (am *AuthManager) Login(ctx context.Context, data *proto.ReqUserData) (*proto.Tokens, error) {
+	fmt.Println("==================")
 	user, err := am.storage.GetUserByLogin(data.Email)
 	if err != nil {
 		return nil, status.Errorf(codes.NotFound, fmt.Sprintf("get user err: %v", err))

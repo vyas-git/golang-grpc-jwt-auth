@@ -1,0 +1,19 @@
+# Start from golang base image
+FROM golang:alpine
+
+ENV GO111MODULE=on
+
+# Git is required for fetching the dependencies.
+RUN apk update && apk add --no-cache git
+
+RUN mkdir /auth_s
+WORKDIR /auth_s
+COPY . .
+
+# Download all dependencies. Dependencies will be cached if the go.mod and the go.sum files are not changed
+RUN go mod download
+
+# Support hot-reload
+RUN go get github.com/githubnemo/CompileDaemon
+
+ENTRYPOINT CompileDaemon -log-prefix=false -build="go build -o main ." -command="./main"
