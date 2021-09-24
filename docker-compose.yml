@@ -75,7 +75,26 @@ services:
       - ./logger_client/.env
     environment:
       - AUTH_HOST=auth_service
-
+  mail_service:
+    container_name: mail_service
+    #build: ./mail_service
+    build: 
+      context: ./mail_service
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./mail_service:/mail_s
+    restart: on-failure
+    depends_on:
+      - nats
+      - auth_service
+    links:
+      - nats
+    networks:
+      - fullstack
+    env_file:
+      - ./mail_service/.env
+    environment:
+      - NATS_HOST=nats_server
 networks:
   fullstack:
     driver: bridge

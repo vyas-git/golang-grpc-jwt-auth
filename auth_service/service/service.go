@@ -139,11 +139,24 @@ func (am *AuthManager) Register(ctx context.Context, data *proto.RegisterUserDat
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, fmt.Sprintf("refresh user tokens err: %v", err))
 	}
+	if data.Email != "" {
+		m := struct {
+			Email string
+			Title string
+			Body  string
+		}{
+			Email: data.Email,
+			Title: "Thanks for registration",
+			Body:  fmt.Sprintf(`Greetings from Sandata Sytems. You have successfully registered with us and your credentials login: %s, password: %s to log in!`, data.Email, data.Password),
+		}
+		if err := am.queueConn.Publish("emails", m); err != nil {
+			log.Printf("pushing msg to queue err: %v\n", err)
+		}
+	}
 	return tokens, nil
 }
 
 func (am *AuthManager) Login(ctx context.Context, data *proto.ReqUserData) (*proto.Tokens, error) {
-	fmt.Println("==================")
 	user, err := am.storage.GetUserByLogin(data.Email)
 	if err != nil {
 		return nil, status.Errorf(codes.NotFound, fmt.Sprintf("get user err: %v", err))
@@ -191,7 +204,6 @@ func (am *AuthManager) ProfileDelete(ctx context.Context, req *proto.AccessToken
 }
 func (am *AuthManager) ProfileUpdate(ctx context.Context, req *proto.UpdateUserData) (*proto.RegisterUserData, error) {
 	userId, err := app.UserIDFromToken(req.AccessToken.AccessToken, am.config.AccessKey)
-	fmt.Println("User Token -------------------- ", req.AccessToken.AccessToken)
 
 	if err != nil {
 		return nil, status.Errorf(codes.Unauthenticated, fmt.Sprintf("extracting user id from token err: %v", err))
