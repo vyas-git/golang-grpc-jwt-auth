@@ -136,6 +136,7 @@ type AuthClient interface {
 	Profile(ctx context.Context, in *AccessToken, opts ...grpc.CallOption) (*RespUserData, error)
 	ProfileDelete(ctx context.Context, in *AccessToken, opts ...grpc.CallOption) (*RespDeleteUser, error)
 	ProfileUpdate(ctx context.Context, in *UpdateUserData, opts ...grpc.CallOption) (*RegisterUserData, error)
+	ProfilesList(ctx context.Context, in *AccessToken, opts ...grpc.CallOption) (*RespProfilesList, error)
 	CreateSecret(ctx context.Context, in *AccessToken, opts ...grpc.CallOption) (*Secret, error)
 	GetSecret(ctx context.Context, in *ReqGetSecretExpire, opts ...grpc.CallOption) (*RespGetSecretExpire, error)
 	GetSecrets(ctx context.Context, in *AccessToken, opts ...grpc.CallOption) (*Secrets, error)
@@ -192,6 +193,15 @@ func (c *authClient) ProfileDelete(ctx context.Context, in *AccessToken, opts ..
 func (c *authClient) ProfileUpdate(ctx context.Context, in *UpdateUserData, opts ...grpc.CallOption) (*RegisterUserData, error) {
 	out := new(RegisterUserData)
 	err := c.cc.Invoke(ctx, "/main.Auth/ProfileUpdate", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authClient) ProfilesList(ctx context.Context, in *AccessToken, opts ...grpc.CallOption) (*RespProfilesList, error) {
+	out := new(RespProfilesList)
+	err := c.cc.Invoke(ctx, "/main.Auth/ProfilesList", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -270,6 +280,7 @@ type AuthServer interface {
 	Profile(context.Context, *AccessToken) (*RespUserData, error)
 	ProfileDelete(context.Context, *AccessToken) (*RespDeleteUser, error)
 	ProfileUpdate(context.Context, *UpdateUserData) (*RegisterUserData, error)
+	ProfilesList(context.Context, *AccessToken) (*RespProfilesList, error)
 	CreateSecret(context.Context, *AccessToken) (*Secret, error)
 	GetSecret(context.Context, *ReqGetSecretExpire) (*RespGetSecretExpire, error)
 	GetSecrets(context.Context, *AccessToken) (*Secrets, error)
@@ -298,6 +309,9 @@ func (UnimplementedAuthServer) ProfileDelete(context.Context, *AccessToken) (*Re
 }
 func (UnimplementedAuthServer) ProfileUpdate(context.Context, *UpdateUserData) (*RegisterUserData, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ProfileUpdate not implemented")
+}
+func (UnimplementedAuthServer) ProfilesList(context.Context, *AccessToken) (*RespProfilesList, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ProfilesList not implemented")
 }
 func (UnimplementedAuthServer) CreateSecret(context.Context, *AccessToken) (*Secret, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateSecret not implemented")
@@ -419,6 +433,24 @@ func _Auth_ProfileUpdate_Handler(srv interface{}, ctx context.Context, dec func(
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(AuthServer).ProfileUpdate(ctx, req.(*UpdateUserData))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Auth_ProfilesList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AccessToken)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServer).ProfilesList(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/main.Auth/ProfilesList",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServer).ProfilesList(ctx, req.(*AccessToken))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -575,6 +607,10 @@ var Auth_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ProfileUpdate",
 			Handler:    _Auth_ProfileUpdate_Handler,
+		},
+		{
+			MethodName: "ProfilesList",
+			Handler:    _Auth_ProfilesList_Handler,
 		},
 		{
 			MethodName: "CreateSecret",

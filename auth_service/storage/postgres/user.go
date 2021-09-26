@@ -47,6 +47,26 @@ func (db *DBPostgres) GetUserByID(id uint) (*app.User, error) {
 
 	return &user, nil
 }
+func (db *DBPostgres) GetUsersByOrg(org string) (*[]app.User, error) {
+	var users []app.User
+
+	rows, err := db.Query("SELECT fname,lname, email, organisation FROM users WHERE organisation = $1", org)
+
+	if err != nil {
+		return nil, errors.Wrap(err, "query err")
+	}
+	defer rows.Close()
+
+	// Loop through rows, using Scan to assign column data to struct fields.
+	for rows.Next() {
+		var user app.User
+		if err := rows.Scan(&user.Fname, &user.Lname, &user.Email, &user.Organisation); err != nil {
+			return &users, err
+		}
+		users = append(users, user)
+	}
+	return &users, nil
+}
 func (db *DBPostgres) PutUserByID(uid uint, user *app.User) (*app.User, error) {
 	var updatedUser app.User
 

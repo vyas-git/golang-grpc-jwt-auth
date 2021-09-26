@@ -43,7 +43,11 @@ message UpdateUserData {
 message RespUserData {
     int64  id       = 1;
     string email    = 2;
-    bool   admin    = 3;
+	string fname = 3;
+	string lname = 4;
+	string organisation = 5;
+
+    bool   admin    = 6;
 }
 message RespDeleteUser {
 	string status = 1;
@@ -98,12 +102,16 @@ message ReqResetPassword {
 message RespResetPassword{
 	string status = 1;
 }
+message RespProfilesList {
+	repeated RespUserData profileslist = 1;
+}
 service Auth {
     rpc Register(RegisterUserData) returns(Tokens) {}
     rpc Login(ReqUserData) returns(Tokens) {}
     rpc Profile(AccessToken) returns(RespUserData) {}
 	rpc ProfileDelete(AccessToken) returns(RespDeleteUser) {}
 	rpc ProfileUpdate(UpdateUserData) returns(RegisterUserData) {}
+	rpc ProfilesList(AccessToken) returns(RespProfilesList) {}
 
 	rpc CreateSecret(AccessToken) returns(Secret) {}
 	rpc GetSecret(ReqGetSecretExpire) returns(RespGetSecretExpire) {}

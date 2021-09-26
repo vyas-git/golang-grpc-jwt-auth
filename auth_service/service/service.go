@@ -225,7 +225,27 @@ func (am *AuthManager) ProfileUpdate(ctx context.Context, req *proto.UpdateUserD
 		Organisation: user.Organisation,
 	}, nil
 }
-
+func (am *AuthManager) ProfilesList(ctx context.Context, req *proto.AccessToken) (*proto.RespProfilesList, error) {
+	userID, err := app.UserIDFromToken(req.AccessToken, am.config.AccessKey)
+	if err != nil {
+		return nil, status.Errorf(codes.Unauthenticated, fmt.Sprintf("extracting user id from token err: %v", err))
+	}
+	user, err := am.storage.GetUserByID(userID)
+	if err != nil {
+		return nil, status.Errorf(codes.NotFound, fmt.Sprintf("get user err: %v", err))
+	}
+	users, err := am.storage.GetUsersByOrg(user.Organisation)
+	if err != nil {
+		return nil, status.Errorf(codes.NotFound, fmt.Sprintf("get user err: %v", err))
+	}
+	var userdata []*proto.RespUserData
+	for _, u := range *users {
+		userdata = append(userdata, &proto.RespUserData{Email: u.Email, Fname: u.Fname, Lname: u.Lname, Organisation: u.Organisation})
+	}
+	return &proto.RespProfilesList{
+		Profileslist: userdata,
+	}, nil
+}
 func (am *AuthManager) CreateSecret(ctx context.Context, req *proto.AccessToken) (*proto.Secret, error) {
 	userID, err := app.UserIDFromToken(req.AccessToken, am.config.AccessKey)
 	if err != nil {

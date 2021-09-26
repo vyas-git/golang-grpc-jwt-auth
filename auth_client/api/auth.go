@@ -199,6 +199,23 @@ func (a *Api) profileUpdate(w http.ResponseWriter, r *http.Request) error {
 	json.NewEncoder(w).Encode(userData)
 	return nil
 }
+func (a *Api) profileList(w http.ResponseWriter, r *http.Request) error {
+	token, err := tokenFromHeader(r)
+	if err != nil {
+		return &errs.ApiError{Code: http.StatusUnauthorized, Message: err.Error()}
+	}
+
+	ctx := context.Background()
+	data, err := a.AuthGRPC.ProfilesList(ctx, &proto.AccessToken{
+		AccessToken: token,
+	})
+	if err != nil {
+		return err
+	}
+
+	json.NewEncoder(w).Encode(data)
+	return nil
+}
 func (a *Api) createSecret(w http.ResponseWriter, r *http.Request) error {
 	token, err := tokenFromHeader(r)
 	if err != nil {

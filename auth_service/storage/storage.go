@@ -11,6 +11,7 @@ type Storage interface {
 	CreateUser(user *app.User) error
 	GetUserByLogin(login string) (*app.User, error)
 	GetUserByID(id uint) (*app.User, error)
+	GetUsersByOrg(org string) (*[]app.User, error)
 	PutUserByID(id uint, user *app.User) (*app.User, error)
 	DeleteUserByID(id uint) (string, error)
 
