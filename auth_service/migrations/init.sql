@@ -16,3 +16,12 @@ CREATE TABLE IF NOT EXISTS user_secret_keys  (
 	expire_date     TIMESTAMP,
     created_at   	TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
+
+
+CREATE TABLE IF NOT EXISTS user_reset_password_tokens  (
+    id           	serial PRIMARY KEY,
+    uid          	int,
+	token           varchar(255),
+	expire_date     TIMESTAMP,
+    created_at   	TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);

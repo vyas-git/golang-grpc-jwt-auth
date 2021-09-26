@@ -3,11 +3,12 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/nats-io/nats.go"
-	"gopkg.in/gomail.v2"
 	"log"
 	"os"
 	"os/signal"
+
+	"github.com/nats-io/nats.go"
+	"gopkg.in/gomail.v2"
 )
 
 func main() {
@@ -71,7 +72,7 @@ func listenQueue(ctx context.Context, conf config, out chan<- *gomail.Message) {
 			m.SetAddressHeader("From", conf.username, conf.fromName)
 			m.SetAddressHeader("To", data.Email, data.Email)
 			m.SetHeader("Subject", data.Title)
-			m.SetBody("text/plain", data.Body)
+			m.SetBody("text/html", data.Body)
 			out <- m
 		case <-ctx.Done():
 			if err := chanSub.Unsubscribe(); err != nil {

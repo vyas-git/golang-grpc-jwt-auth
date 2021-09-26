@@ -18,6 +18,9 @@ type Storage interface {
 	GetSecrets(uid uint) (*[]app.Secret, error)
 	GetSecretExpired(secretid uint) (string, error)
 	DeleteSecret(secretid uint, uid uint) (*[]app.Secret, error)
+	StoreRestPassToken(uid uint, resetToken *app.Secret) error
+	VerifyToken(uid uint, token string) error
+	UpdateUserPassword(uid uint, password string) error
 	Close() error
 }
 

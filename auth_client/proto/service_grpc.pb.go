@@ -140,6 +140,8 @@ type AuthClient interface {
 	GetSecret(ctx context.Context, in *ReqGetSecretExpire, opts ...grpc.CallOption) (*RespGetSecretExpire, error)
 	GetSecrets(ctx context.Context, in *AccessToken, opts ...grpc.CallOption) (*Secrets, error)
 	DeleteSecret(ctx context.Context, in *ReqDeleteSecret, opts ...grpc.CallOption) (*Secrets, error)
+	ForgotPassword(ctx context.Context, in *ReqUserData, opts ...grpc.CallOption) (*RespForgotPass, error)
+	ResetPassword(ctx context.Context, in *ReqResetPassword, opts ...grpc.CallOption) (*RespResetPassword, error)
 	RefreshTokens(ctx context.Context, in *RefreshToken, opts ...grpc.CallOption) (*Tokens, error)
 }
 
@@ -232,6 +234,24 @@ func (c *authClient) DeleteSecret(ctx context.Context, in *ReqDeleteSecret, opts
 	return out, nil
 }
 
+func (c *authClient) ForgotPassword(ctx context.Context, in *ReqUserData, opts ...grpc.CallOption) (*RespForgotPass, error) {
+	out := new(RespForgotPass)
+	err := c.cc.Invoke(ctx, "/main.Auth/ForgotPassword", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authClient) ResetPassword(ctx context.Context, in *ReqResetPassword, opts ...grpc.CallOption) (*RespResetPassword, error) {
+	out := new(RespResetPassword)
+	err := c.cc.Invoke(ctx, "/main.Auth/ResetPassword", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *authClient) RefreshTokens(ctx context.Context, in *RefreshToken, opts ...grpc.CallOption) (*Tokens, error) {
 	out := new(Tokens)
 	err := c.cc.Invoke(ctx, "/main.Auth/RefreshTokens", in, out, opts...)
@@ -254,6 +274,8 @@ type AuthServer interface {
 	GetSecret(context.Context, *ReqGetSecretExpire) (*RespGetSecretExpire, error)
 	GetSecrets(context.Context, *AccessToken) (*Secrets, error)
 	DeleteSecret(context.Context, *ReqDeleteSecret) (*Secrets, error)
+	ForgotPassword(context.Context, *ReqUserData) (*RespForgotPass, error)
+	ResetPassword(context.Context, *ReqResetPassword) (*RespResetPassword, error)
 	RefreshTokens(context.Context, *RefreshToken) (*Tokens, error)
 	mustEmbedUnimplementedAuthServer()
 }
@@ -288,6 +310,12 @@ func (UnimplementedAuthServer) GetSecrets(context.Context, *AccessToken) (*Secre
 }
 func (UnimplementedAuthServer) DeleteSecret(context.Context, *ReqDeleteSecret) (*Secrets, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteSecret not implemented")
+}
+func (UnimplementedAuthServer) ForgotPassword(context.Context, *ReqUserData) (*RespForgotPass, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ForgotPassword not implemented")
+}
+func (UnimplementedAuthServer) ResetPassword(context.Context, *ReqResetPassword) (*RespResetPassword, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ResetPassword not implemented")
 }
 func (UnimplementedAuthServer) RefreshTokens(context.Context, *RefreshToken) (*Tokens, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RefreshTokens not implemented")
@@ -467,6 +495,42 @@ func _Auth_DeleteSecret_Handler(srv interface{}, ctx context.Context, dec func(i
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Auth_ForgotPassword_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ReqUserData)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServer).ForgotPassword(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/main.Auth/ForgotPassword",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServer).ForgotPassword(ctx, req.(*ReqUserData))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Auth_ResetPassword_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ReqResetPassword)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServer).ResetPassword(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/main.Auth/ResetPassword",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServer).ResetPassword(ctx, req.(*ReqResetPassword))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _Auth_RefreshTokens_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(RefreshToken)
 	if err := dec(in); err != nil {
@@ -527,6 +591,14 @@ var Auth_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteSecret",
 			Handler:    _Auth_DeleteSecret_Handler,
+		},
+		{
+			MethodName: "ForgotPassword",
+			Handler:    _Auth_ForgotPassword_Handler,
+		},
+		{
+			MethodName: "ResetPassword",
+			Handler:    _Auth_ResetPassword_Handler,
 		},
 		{
 			MethodName: "RefreshTokens",

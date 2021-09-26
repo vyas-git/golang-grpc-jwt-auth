@@ -79,10 +79,12 @@ func (a *Api) InitRouter() {
 	r.Method("GET", a.Config.BaseApi+"/profile", a.handler(a.profile))
 	r.Method("DELETE", a.Config.BaseApi+"/profile", a.handler(a.profileDelete))
 	r.Method("PUT", a.Config.BaseApi+"/profile", a.handler(a.profileUpdate))
-	r.Method("POST", a.Config.BaseApi+"/secrets", a.handler(a.createSecret))
-	r.Method("GET", a.Config.BaseApi+"/secrets", a.handler(a.getSecrets))
-	r.Method("DELETE", a.Config.BaseApi+"/secrets/{id}", a.handler(a.deleteSecrets))
-	r.Method("GET", a.Config.BaseApi+"/secrets/{id}", a.handler(a.getSecretExpired))
+	r.Method("POST", a.Config.BaseApi+"/license", a.handler(a.createSecret))
+	r.Method("GET", a.Config.BaseApi+"/license", a.handler(a.getSecrets))
+	r.Method("DELETE", a.Config.BaseApi+"/license/{id}", a.handler(a.deleteSecrets))
+	r.Method("GET", a.Config.BaseApi+"/license/{id}", a.handler(a.getSecretExpired))
+	r.Method("POST", a.Config.BaseApi+"/forgot-password", a.handler(a.forgotPassword))
+	r.Method("POST", a.Config.BaseApi+"/reset-password", a.handler(a.resetPassword))
 
 	r.Method("POST", a.Config.BaseApi+"/refresh_tokens", a.handler(a.refreshTokens))
 	a.Router = r

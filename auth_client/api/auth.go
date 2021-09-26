@@ -35,7 +35,11 @@ type authInput struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
 }
-
+type resetPasswordInput struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+	Token    string `json:"token"`
+}
 type respTokens struct {
 	AccessToken   string `json:"access_token"`
 	RefreshToken  string `json:"refresh_token"`
@@ -275,6 +279,53 @@ func (a *Api) getSecretExpired(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
+func (a *Api) forgotPassword(w http.ResponseWriter, r *http.Request) error {
+	var input authInput
+	defer r.Body.Close()
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return &errs.ApiError{Code: http.StatusInternalServerError, Message: err.Error()}
+	}
+	if err := json.Unmarshal(body, &input); err != nil {
+		return &errs.ApiError{Code: http.StatusBadRequest, Message: err.Error()}
+	}
+
+	ctx := context.Background()
+	resp, err := a.AuthGRPC.ForgotPassword(ctx, &proto.ReqUserData{
+		Email: input.Email,
+	})
+	if err != nil {
+		return err
+	}
+
+	json.NewEncoder(w).Encode(resp)
+	return nil
+}
+func (a *Api) resetPassword(w http.ResponseWriter, r *http.Request) error {
+	var input resetPasswordInput
+	defer r.Body.Close()
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return &errs.ApiError{Code: http.StatusInternalServerError, Message: err.Error()}
+	}
+	if err := json.Unmarshal(body, &input); err != nil {
+		return &errs.ApiError{Code: http.StatusBadRequest, Message: err.Error()}
+	}
+
+	ctx := context.Background()
+	resp, err := a.AuthGRPC.ResetPassword(ctx, &proto.ReqResetPassword{
+		Email:    input.Email,
+		Password: input.Password,
+		Token:    input.Token,
+	})
+	if err != nil {
+		return err
+	}
+
+	json.NewEncoder(w).Encode(resp)
+	return nil
+}
+
 func (a *Api) refreshTokens(w http.ResponseWriter, r *http.Request) error {
 	token, err := tokenFromHeader(r)
 	if err != nil {
@@ -309,12 +360,6 @@ func tokenFromHeader(r *http.Request) (string, error) {
 var emailRegexp = regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
 
 func (a authInput) validate() error {
-	/*	if a.Email == "" {
-			return fmt.Errorf("Email is required")
-		}
-		if utf8.RuneCountInString(a.Login) < 5 || utf8.RuneCountInString(a.Login) > 40 {
-			return fmt.Errorf("Email must be from 5 to 40 characters")
-		}*/
 
 	if a.Password == "" {
 		return fmt.Errorf("password is required")
@@ -334,12 +379,6 @@ func (a authInput) validate() error {
 }
 
 func (a registerInput) validate() error {
-	/*	if a.Email == "" {
-			return fmt.Errorf("Email is required")
-		}
-		if utf8.RuneCountInString(a.Login) < 5 || utf8.RuneCountInString(a.Login) > 40 {
-			return fmt.Errorf("Email must be from 5 to 40 characters")
-		}*/
 
 	if a.Password == "" {
 		return fmt.Errorf("password is required")

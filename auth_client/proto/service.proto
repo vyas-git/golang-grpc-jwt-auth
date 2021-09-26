@@ -84,7 +84,19 @@ message RespGetSecretExpire {
 message ReqGetSecretExpire {
 	int32 secret_id = 1;
 	AccessToken access_token = 2;
+}
 
+message RespForgotPass{
+	string status = 1;
+
+}
+message ReqResetPassword {
+    string email 	= 1;
+	string password = 2;
+    string token   	= 3;
+}
+message RespResetPassword{
+	string status = 1;
 }
 service Auth {
     rpc Register(RegisterUserData) returns(Tokens) {}
@@ -98,6 +110,8 @@ service Auth {
 	rpc GetSecrets(AccessToken) returns(Secrets) {}
 
 	rpc DeleteSecret(ReqDeleteSecret) returns(Secrets) {}
+	rpc ForgotPassword(ReqUserData) returns(RespForgotPass) {}
+	rpc ResetPassword(ReqResetPassword) returns(RespResetPassword) {}
 
     rpc RefreshTokens(RefreshToken) returns(Tokens) {}
 }

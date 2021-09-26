@@ -137,3 +137,45 @@ func (db *DBPostgres) DeleteSecret(secretid uint, uid uint) (*[]app.Secret, erro
 	data, err := db.GetSecrets(uid)
 	return data, nil
 }
+
+func (db *DBPostgres) StoreRestPassToken(uid uint, token *app.Secret) error {
+	_, err := db.Exec("INSERT INTO user_reset_password_tokens (uid,token,expire_date) VALUES($1,$2,$3)",
+		uid, token.SecretKey, time.Now().Add(0+
+			time.Minute*time.Duration(15)+
+			0))
+	if err != nil {
+		return errors.Wrap(err, "query err")
+	}
+
+	return nil
+}
+
+func (db *DBPostgres) VerifyToken(uid uint, token string) error {
+	var secret app.Secret
+	row := db.QueryRow("SELECT  FROM user_reset_password_token WHERE uid = $1 and token = $2", uid, token)
+	err := row.Scan(&secret.ExpireDate)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return fmt.Errorf("no secret with such id")
+		}
+		return errors.Wrap(err, "query err")
+	}
+	t, err := time.Parse(time.RFC3339, secret.ExpireDate)
+
+	if t.Before(time.Now()) {
+		return fmt.Errorf("token got expired")
+	} else {
+		return nil
+	}
+
+}
+
+func (db *DBPostgres) UpdateUserPassword(uid uint, password string) error {
+	_, err := db.Exec("UPDATE users set password=$1 WHERE id = $2", password, uid)
+	if err != nil {
+		return errors.Wrap(err, "query err")
+	}
+
+	return nil
+}

@@ -10,6 +10,7 @@ import (
 	"log"
 	"math/rand"
 	"net"
+	"strconv"
 	"sync"
 	"time"
 
@@ -234,7 +235,14 @@ func (am *AuthManager) CreateSecret(ctx context.Context, req *proto.AccessToken)
 	if err != nil {
 		return nil, status.Errorf(codes.NotFound, fmt.Sprintf("get user err: %v", err))
 	}
+	licenses, err := am.storage.GetSecrets(userID)
+	if err != nil {
+		return nil, status.Errorf(codes.Canceled, fmt.Sprintf("getting licenses err: %v", err))
+	}
+	if len(*licenses) > 1 {
+		return nil, status.Errorf(codes.Aborted, fmt.Sprintf("getting licenses err: %v", err))
 
+	}
 	key := []byte(am.config.SecretKey)
 	plaintext := []byte(user.Email + "," + user.Organisation)
 	encrypted_key, err := app.EncryptSecret(key, plaintext)
@@ -317,7 +325,64 @@ func (am *AuthManager) DeleteSecret(ctx context.Context, req *proto.ReqDeleteSec
 	}, nil
 
 }
+func (am *AuthManager) ForgotPassword(ctx context.Context, data *proto.ReqUserData) (*proto.RespForgotPass, error) {
+	user, err := am.storage.GetUserByLogin(data.Email)
+	if err != nil {
+		return nil, status.Errorf(codes.NotFound, fmt.Sprintf("get user err: %v", err))
+	}
+	key := []byte(am.config.SecretKey)
+	plaintext := []byte(user.Email + strconv.Itoa(int(time.Now().Unix())))
+	encrypted_key, err := app.EncryptSecret(key, plaintext)
+	encrypted_text := fmt.Sprintf("%0x\n", encrypted_key)
+	new_secret := app.Secret{
+		SecretKey: string(encrypted_text),
+	}
+	err = am.storage.StoreRestPassToken(user.ID, &new_secret)
+	if err != nil {
+		return nil, status.Errorf(codes.Canceled, fmt.Sprintf("reset token err: %v", err))
+	}
+	if data.Email != "" {
+		m := struct {
+			Email string
+			Title string
+			Body  string
+		}{
+			Email: user.Email,
+			Title: "Reset Password",
+			Body:  "click on link for rest password <a href='http://" + am.config.Host + "token=" + new_secret.SecretKey + "'>Reset Link</a>",
+		}
+		if err := am.queueConn.Publish("emails", m); err != nil {
+			log.Printf("pushing msg to queue err: %v\n", err)
+		}
+	}
+	return &proto.RespForgotPass{
+		Status: "Success",
+	}, nil
+}
+func (am *AuthManager) ResetPassword(ctx context.Context, data *proto.ReqResetPassword) (*proto.RespResetPassword, error) {
+	user, err := am.storage.GetUserByLogin(data.Email)
+	if err != nil {
+		return nil, status.Errorf(codes.NotFound, fmt.Sprintf("get user err: %v", err))
+	}
+	err = am.storage.VerifyToken(user.ID, data.Token)
+	if err != nil {
+		return nil, status.Errorf(codes.Unauthenticated, fmt.Sprintf("token verify err: %v", err))
+	}
+	user_pass := app.User{
 
+		PasswordHash: data.Password,
+	}
+	if err := user.HashPassword(); err != nil {
+		return nil, status.Errorf(codes.Internal, fmt.Sprintf("hashing password err: %v", err))
+	}
+	err = am.storage.UpdateUserPassword(user.ID, user_pass.PasswordHash)
+	if err != nil {
+		return nil, status.Errorf(codes.Canceled, fmt.Sprintf("update password err :%v", err))
+	}
+	return &proto.RespResetPassword{
+		Status: "Password updated successfully",
+	}, nil
+}
 func (am *AuthManager) RefreshTokens(ctx context.Context, req *proto.RefreshToken) (*proto.Tokens, error) {
 	userID, err := app.UserIDFromToken(req.RefreshToken, am.config.RefreshKey)
 	if err != nil {
